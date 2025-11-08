@@ -7,6 +7,14 @@ from textblob import TextBlob
 import openai
 from config import Config
 import json
+import nltk
+
+# Download required NLTK data
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt', quiet=True)
+    nltk.download('punkt_tab', quiet=True)
 
 
 class AIAnalyzer:
@@ -114,6 +122,10 @@ class AIAnalyzer:
 
         try:
             # Prepare prompt for OpenAI
+            # Convert PlatformStats objects to platform names
+            platforms = analysis_data.get('platform_distribution', [])
+            platform_names = ', '.join([p.platform if hasattr(p, 'platform') else p['platform'] for p in platforms])
+
             prompt = f"""
 Based on the following social footprint analysis, provide 3-5 specific, actionable recommendations
 to improve online presence and reputation:
@@ -121,7 +133,7 @@ to improve online presence and reputation:
 Visibility Score: {analysis_data.get('visibility_score', 0)}/100
 Perception Score: {analysis_data.get('perception_score', 0)}/100
 Total Mentions: {analysis_data.get('total_mentions', 0)}
-Platforms: {', '.join([p['platform'] for p in analysis_data.get('platform_distribution', [])])}
+Platforms: {platform_names}
 Sentiment: {analysis_data.get('sentiment_breakdown', {})}
 
 Provide recommendations as a JSON array of strings.
@@ -175,7 +187,7 @@ Provide recommendations as a JSON array of strings.
             recommendations.append("Maintain your positive reputation by continuing to engage professionally online")
 
         # Platform-specific recommendations
-        platform_names = [p['platform'] for p in platforms]
+        platform_names = [p.platform if hasattr(p, 'platform') else p['platform'] for p in platforms]
         if 'LinkedIn' not in platform_names:
             recommendations.append("Create a LinkedIn profile to establish professional credibility")
         if 'News' not in platform_names and visibility > 50:
